@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MakerSights Image Standardizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        :root {
+            --onyx: #121212;
+            --thunder: #2B2B28;
+            --dune: #393C2C;
+            --white: #FFFFFF;
+            --platinum: #E3E2DF;
+            --dusty-green: #6DAE5B;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Work Sans', sans-serif;
+            background: var(--white);
+            color: var(--onyx);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .header-flex {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+        }
+
+        .makersights-logo {
+            height: 4.2rem; /* Adjusted to match header+subheader height visually */
+            width: auto;
+            display: block;
+        }
+
+        .header-text {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--onyx);
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--thunder);
+            font-weight: 400;
+        }
+
+        .upload-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 0.5rem;
+            box-shadow: 0 8px 32px rgba(18, 18, 18, 0.1);
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .upload-zone {
+            border: none;
+            border-radius: 12px;
+            padding: 1.5rem 0.75rem;
+            text-align: center;
+            background: var(--white);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .upload-zone:hover {
+            background: rgba(109, 174, 91, 0.02);
+        }
+
+        .upload-zone.dragover {
+            background: rgba(109, 174, 91, 0.05);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--dune);
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: var(--thunder);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .upload-subtext {
+            color: var(--dune);
+            font-size: 0.9rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            font-family: 'Work Sans', sans-serif;
+            font-weight: 600;
+            padding: 1.5rem 3rem;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.5rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .btn-primary {
+            background: var(--dusty-green);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background: #5a9349;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(109, 174, 91, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--platinum);
+            color: var(--thunder);
+            border: 1px solid var(--dune);
+        }
+
+        .btn-secondary:hover {
+            background: var(--white);
+            transform: translateY(-1px);
+        }
+
+        .progress-section {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 16px rgba(18, 18, 18, 0.08);
+            margin-bottom: 2rem;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--platinum);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--dusty-green);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            color: var(--thunder);
+            font-size: 0.9rem;
+        }
+
+        .preview-section {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 16px rgba(18, 18, 18, 0.08);
+            margin-bottom: 2rem;
+            display: none;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+        }
+
+        .preview-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--onyx);
+            margin-bottom: 1.5rem;
+        }
+
+        .preview-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .preview-item {
+            text-align: center;
+        }
+
+        .preview-label {
+            font-size: 0.9rem;
+            color: var(--thunder);
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(18, 18, 18, 0.1);
+        }
+
+        .download-section {
+            background: none;
+            border-radius: 0;
+            padding: 0;
+            box-shadow: none;
+            text-align: center;
+            display: none;
+            margin: 2rem auto 0 auto;
+            width: 100%;
+            max-width: none;
+        }
+
+        .success-icon {
+            font-size: 3rem;
+            color: var(--dusty-green);
+            margin-bottom: 1rem;
+        }
+
+        .error-message {
+            background: #ff4444;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .file-list {
+            margin-top: 1rem;
+            text-align: left;
+        }
+
+        .file-item {
+            background: var(--platinum);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--thunder);
+        }
+
+        #processedCount {
+            font-size: 1.2rem;
+            color: var(--thunder);
+            font-family: 'Work Sans', sans-serif;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn-preview-download {
+            font-size: 1rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .preview-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+            
+            .upload-card {
+                padding: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-flex">
+                <img src="makersights-logo.png" alt="MakerSights Logo" class="makersights-logo">
+                <div class="header-text">
+                    <div class="logo">Product Image Resizer</div>
+                    <div class="subtitle">Resize multiple product images all at once :)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="upload-card">
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Click here to select images!</div>
+                <div class="upload-subtext">PNG, JPG, SVG • Up to 50 files</div>
+                <input type="file" id="fileInput" class="file-input" multiple accept=".png,.jpg,.jpeg,.svg">
+            </div>
+            
+            <div class="error-message" id="errorMessage"></div>
+            
+            <div class="file-list" id="fileList"></div>
+        </div>
+
+        <div class="progress-section" id="progressSection">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">Processing images...</div>
+        </div>
+
+        <div class="preview-section" id="previewSection">
+            <div class="preview-header">
+                <div class="preview-title">Preview</div>
+                <button class="btn btn-primary btn-preview-download" id="previewDownloadBtn" style="display:none;">
+                    🎁 Download
+                </button>
+            </div>
+            <div class="preview-container">
+                <div class="preview-item">
+                    <div class="preview-label">Original</div>
+                    <img id="originalPreview" class="preview-image" alt="Original image">
+                </div>
+                <div class="preview-item">
+                    <div class="preview-label">Resized</div>
+                    <img id="standardizedPreview" class="preview-image" alt="Standardized image">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class ImageStandardizer {
+            constructor() {
+                this.files = [];
+                this.processedImages = [];
+                this.globalMinMargin = 0;
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                const uploadZone = document.getElementById('uploadZone');
+                const fileInput = document.getElementById('fileInput');
+
+                // Upload zone interactions
+                uploadZone.addEventListener('click', () => fileInput.click());
+                uploadZone.addEventListener('dragover', this.handleDragOver.bind(this));
+                uploadZone.addEventListener('dragleave', this.handleDragLeave.bind(this));
+                uploadZone.addEventListener('drop', this.handleDrop.bind(this));
+
+                // File input change
+                fileInput.addEventListener('change', (e) => this.handleFiles(e.target.files));
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                document.getElementById('uploadZone').classList.add('dragover');
+            }
+
+            handleDragLeave(e) {
+                e.preventDefault();
+                document.getElementById('uploadZone').classList.remove('dragover');
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                document.getElementById('uploadZone').classList.remove('dragover');
+                // Support folder drag-and-drop
+                let items = e.dataTransfer.items;
+                if (items && items.length && items[0].webkitGetAsEntry) {
+                    let files = [];
+                    let pending = 0;
+                    const traverseFileTree = (item, path = "") => {
+                        if (item.isFile) {
+                            pending++;
+                            item.file(file => {
+                                file.fullPath = path + file.name;
+                                files.push(file);
+                                pending--;
+                                if (pending === 0) this.handleFiles(files);
+                            });
+                        } else if (item.isDirectory) {
+                            const dirReader = item.createReader();
+                            dirReader.readEntries(entries => {
+                                for (let entry of entries) {
+                                    traverseFileTree(entry, path + item.name + "/");
+                                }
+                            });
+                        }
+                    };
+                    for (let i = 0; i < items.length; i++) {
+                        let entry = items[i].webkitGetAsEntry();
+                        if (entry) traverseFileTree(entry);
+                    }
+                } else {
+                    this.handleFiles(e.dataTransfer.files);
+                }
+            }
+
+            handleFiles(files) {
+                // Reset previous batch
+                this.processedImages = [];
+                const validFiles = this.validateFiles(files);
+                if (validFiles.length === 0) return;
+
+                this.files = validFiles;
+                this.displayFileList();
+                this.processImages();
+            }
+
+            validateFiles(files) {
+                const validExtensions = ['png', 'jpg', 'jpeg', 'svg'];
+                const validFiles = [];
+                let errors = [];
+
+                if (files.length > 50) {
+                    this.showError('Maximum 50 files allowed. Please select fewer files.');
+                    return [];
+                }
+
+                Array.from(files).forEach(file => {
+                    const extension = file.name.split('.').pop().toLowerCase();
+                    if (validExtensions.includes(extension)) {
+                        validFiles.push(file);
+                    } else {
+                        errors.push(`${file.name}: Unsupported format`);
+                    }
+                });
+
+                if (errors.length > 0) {
+                    this.showError(`Skipped files: ${errors.join(', ')}`);
+                }
+
+                return validFiles;
+            }
+
+            displayFileList() {
+                const fileList = document.getElementById('fileList');
+                if (fileList) fileList.innerHTML = '';
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            showError(message) {
+                const errorDiv = document.getElementById('errorMessage');
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                setTimeout(() => {
+                    errorDiv.style.display = 'none';
+                }, 5000);
+            }
+
+            async processImages() {
+                const progressSection = document.getElementById('progressSection');
+                const progressFill = document.getElementById('progressFill');
+                const progressText = document.getElementById('progressText');
+
+                progressSection.style.display = 'block';
+
+                try {
+                    // Step 1: Load all images and find minimum margin
+                    const loadedImages = [];
+                    for (let i = 0; i < this.files.length; i++) {
+                        const file = this.files[i];
+                        progressText.textContent = `Loading image ${i + 1} of ${this.files.length}...`;
+                        progressFill.style.width = `${(i / this.files.length) * 50}%`;
+
+                        const imageData = await this.loadImage(file);
+                        if (imageData) {
+                            loadedImages.push({ file, ...imageData });
+                        } else {
+                            this.showError(`Failed to load image: ${file.name}`);
+                        }
+                    }
+
+                    if (loadedImages.length === 0) {
+                        this.showError('No valid images could be loaded. Please check your files and try again.');
+                        progressSection.style.display = 'none';
+                        return;
+                    }
+
+                    // Step 2: Calculate global minimum margin
+                    this.calculateGlobalMinMargin(loadedImages);
+
+                    // Step 3: Process each image
+                    this.processedImages = [];
+                    for (let i = 0; i < loadedImages.length; i++) {
+                        const imageData = loadedImages[i];
+                        progressText.textContent = `Processing image ${i + 1} of ${loadedImages.length}...`;
+                        progressFill.style.width = `${50 + (i / loadedImages.length) * 50}%`;
+
+                        try {
+                            const standardized = await this.standardizeImage(imageData);
+                            this.processedImages.push(standardized);
+                        } catch (err) {
+                            this.showError(`Failed to process image: ${imageData.filename}`);
+                        }
+                    }
+
+                    if (this.processedImages.length === 0) {
+                        this.showError('No images could be processed. Please check your files and try again.');
+                        progressSection.style.display = 'none';
+                        return;
+                    }
+
+                    progressFill.style.width = '100%';
+                    progressText.textContent = 'Processing...';
+
+                    setTimeout(() => {
+                        progressSection.style.display = 'none';
+                        // Show preview only after progress bar is hidden and processing is done
+                        if (loadedImages.length > 0 && this.processedImages.length > 0) {
+                            this.showPreview(loadedImages[0], this.processedImages[0]);
+                        }
+                    }, 1000);
+
+                } catch (error) {
+                    console.error('Processing error:', error);
+                    this.showError('An error occurred during processing. Please check your files and try again.');
+                    progressSection.style.display = 'none';
+                }
+            }
+
+            async loadImage(file) {
+                return new Promise((resolve) => {
+                    if (file.type === 'image/svg+xml') {
+                        // Handle SVG files
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            const svgContent = reader.result;
+                            this.rasterizeSVG(svgContent, file.name).then(resolve);
+                        };
+                        reader.readAsText(file);
+                    } else {
+                        // Handle raster images
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            const img = new Image();
+                            img.onload = () => {
+                                const canvas = document.createElement('canvas');
+                                const ctx = canvas.getContext('2d');
+                                canvas.width = img.width;
+                                canvas.height = img.height;
+                                
+                                // Fill with white background
+                                ctx.fillStyle = '#FFFFFF';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                ctx.drawImage(img, 0, 0);
+                                
+                                const boundingBox = this.findBoundingBox(ctx, canvas.width, canvas.height);
+                                resolve({
+                                    canvas,
+                                    ctx,
+                                    originalWidth: img.width,
+                                    originalHeight: img.height,
+                                    boundingBox,
+                                    filename: file.name
+                                });
+                            };
+                            img.src = reader.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+
+            async rasterizeSVG(svgContent, filename) {
+                return new Promise((resolve) => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Set high DPI (300 DPI equivalent)
+                    const scaleFactor = 4;
+                    canvas.width = 800 * scaleFactor;
+                    canvas.height = 600 * scaleFactor;
+                    
+                    // Fill with white background
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    const img = new Image();
+                    img.onload = () => {
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        const boundingBox = this.findBoundingBox(ctx, canvas.width, canvas.height);
+                        resolve({
+                            canvas,
+                            ctx,
+                            originalWidth: canvas.width,
+                            originalHeight: canvas.height,
+                            boundingBox,
+                            filename
+                        });
+                    };
+                    
+                    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+                    img.src = URL.createObjectURL(blob);
+                });
+            }
+
+            findBoundingBox(ctx, width, height) {
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const data = imageData.data;
+                
+                let minX = width, minY = height, maxX = 0, maxY = 0;
+                
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const index = (y * width + x) * 4;
+                        const r = data[index];
+                        const g = data[index + 1];
+                        const b = data[index + 2];
+                        const a = data[index + 3];
+                        
+                        // Check if pixel is not white or transparent
+                        if (!(r >= 250 && g >= 250 && b >= 250) || a < 255) {
+                            minX = Math.min(minX, x);
+                            minY = Math.min(minY, y);
+                            maxX = Math.max(maxX, x);
+                            maxY = Math.max(maxY, y);
+                        }
+                    }
+                }
+                
+                return {
+                    x: minX,
+                    y: minY,
+                    width: maxX - minX + 1,
+                    height: maxY - minY + 1
+                };
+            }
+
+            calculateGlobalMinMargin(images) {
+                let minMarginX = Infinity;
+                let minMarginY = Infinity;
+                
+                images.forEach(img => {
+                    const marginX = Math.min(img.boundingBox.x, img.originalWidth - img.boundingBox.x - img.boundingBox.width);
+                    const marginY = Math.min(img.boundingBox.y, img.originalHeight - img.boundingBox.y - img.boundingBox.height);
+                    
+                    minMarginX = Math.min(minMarginX, marginX);
+                    minMarginY = Math.min(minMarginY, marginY);
+                });
+                
+                this.globalMinMargin = Math.max(10, Math.min(minMarginX, minMarginY)); // Minimum 10px margin
+            }
+
+            async standardizeImage(imageData) {
+                const { canvas: originalCanvas, boundingBox, filename } = imageData;
+                
+                // Crop the content
+                const croppedCanvas = document.createElement('canvas');
+                const croppedCtx = croppedCanvas.getContext('2d');
+                croppedCanvas.width = boundingBox.width;
+                croppedCanvas.height = boundingBox.height;
+                croppedCtx.fillStyle = '#FFFFFF';
+                croppedCtx.fillRect(0, 0, croppedCanvas.width, croppedCanvas.height);
+                croppedCtx.drawImage(
+                    originalCanvas,
+                    boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height,
+                    0, 0, boundingBox.width, boundingBox.height
+                );
+
+                // Scale so largest dimension is 800px
+                let scale = 1;
+                if (croppedCanvas.width > croppedCanvas.height) {
+                    scale = 800 / croppedCanvas.width;
+                } else {
+                    scale = 800 / croppedCanvas.height;
+                }
+                const scaledWidth = Math.round(croppedCanvas.width * scale);
+                const scaledHeight = Math.round(croppedCanvas.height * scale);
+
+                // Create 800x800 canvas and center the scaled image
+                const finalCanvas = document.createElement('canvas');
+                const finalCtx = finalCanvas.getContext('2d');
+                finalCanvas.width = 800;
+                finalCanvas.height = 800;
+                finalCtx.fillStyle = '#FFFFFF';
+                finalCtx.fillRect(0, 0, 800, 800);
+                const offsetX = Math.floor((800 - scaledWidth) / 2);
+                const offsetY = Math.floor((800 - scaledHeight) / 2);
+                finalCtx.drawImage(croppedCanvas, 0, 0, croppedCanvas.width, croppedCanvas.height, offsetX, offsetY, scaledWidth, scaledHeight);
+
+                // Generate filename
+                const name = filename.replace(/\.[^/.]+$/, '');
+                const standardizedFilename = `${name}_standardized.png`;
+                
+                return {
+                    canvas: finalCanvas,
+                    filename: standardizedFilename,
+                    originalFilename: filename
+                };
+            }
+
+            showPreview(original, standardized) {
+                const previewSection = document.getElementById('previewSection');
+                if (previewSection) previewSection.style.display = 'block';
+                const originalPreview = document.getElementById('originalPreview');
+                const standardizedPreview = document.getElementById('standardizedPreview');
+                if (originalPreview && standardizedPreview) {
+                    originalPreview.src = original.canvas.toDataURL();
+                    standardizedPreview.src = standardized.canvas.toDataURL();
+                }
+                // Show the preview download button
+                const previewDownloadBtn = document.getElementById('previewDownloadBtn');
+                if (previewDownloadBtn) {
+                    previewDownloadBtn.style.display = 'inline-flex';
+                    previewDownloadBtn.onclick = async () => {
+                        // Download only the first processed image (standardized)
+                        if (standardized && standardized.canvas) {
+                            const link = document.createElement('a');
+                            link.href = standardized.canvas.toDataURL('image/png', 1.0);
+                            link.download = standardized.filename || 'standardized.png';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        }
+                    };
+                }
+                // Update the preview title with the number of images processed
+                const previewTitle = previewSection.querySelector('.preview-title');
+                if (previewTitle) {
+                    const count = this.files ? this.files.length : 1;
+                    previewTitle.textContent = `${count} image${count === 1 ? '' : 's'} processed!`;
+                }
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            new ImageStandardizer();
+            // Prevent default dragover/drop on the whole page to avoid browser taking over
+            document.addEventListener('dragover', function(e) { e.preventDefault(); });
+            document.addEventListener('drop', function(e) { e.preventDefault(); });
+        });
+    </script>
+</body>
+</html>
